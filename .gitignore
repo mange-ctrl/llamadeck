@@ -1,0 +1,16 @@
+﻿# Build output
+bin/
+obj/
+dist/
+publish/
+
+# IDE
+.vs/
+*.user
+*.suo
+*.userprefs
+
+# Bundled llama.cpp backend archives (not in the repo)
+src/LlamaDeck/Assets/backends.zip
+src/LlamaDeckNode/Assets/rpc.zip
+src/LlamaDeckPro/Assets/backends.zip

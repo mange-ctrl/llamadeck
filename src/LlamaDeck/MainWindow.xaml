@@ -1,0 +1,542 @@
+﻿<Window x:Class="LlamaDeck.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:core="clr-namespace:LlamaDeck.Core"
+        Title="LlamaDeck"
+        Width="1240" Height="920"
+        MinWidth="1060" MinHeight="720"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display"
+        Closing="Window_Closing">
+
+    <Window.Resources>
+        <DataTemplate x:Key="ModelTemplate">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="{Binding Title}" FontSize="12.5" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Text="{Binding SubText}" FontSize="10.5" Foreground="{StaticResource MutedBrush}"
+                               Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <Border Grid.Column="1" Background="{StaticResource SurfaceAltBrush}" CornerRadius="5"
+                        Padding="6,2" VerticalAlignment="Center" Margin="8,0,0,0">
+                    <TextBlock Text="{Binding Badge}" FontSize="9.5" Foreground="{StaticResource MutedBrush}" />
+                </Border>
+            </Grid>
+        </DataTemplate>
+
+        <DataTemplate x:Key="LogTemplate">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="58" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="{Binding Time}" FontFamily="Cascadia Mono, Consolas" FontSize="10.5"
+                           Foreground="#5C6980" VerticalAlignment="Top" Margin="0,2,8,0" />
+                <TextBlock x:Name="msg" Grid.Column="1" Text="{Binding Message}"
+                           FontFamily="Cascadia Mono, Consolas" FontSize="11.5"
+                           TextWrapping="Wrap" Foreground="#93A0B4" />
+            </Grid>
+            <DataTemplate.Triggers>
+                <DataTrigger Binding="{Binding Level}" Value="{x:Static core:LogLevel.Server}">
+                    <Setter TargetName="msg" Property="Foreground" Value="#AEBBCE" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="{x:Static core:LogLevel.Warn}">
+                    <Setter TargetName="msg" Property="Foreground" Value="{StaticResource AmberBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="{x:Static core:LogLevel.Error}">
+                    <Setter TargetName="msg" Property="Foreground" Value="{StaticResource RedBrush}" />
+                </DataTrigger>
+                <DataTrigger Binding="{Binding Level}" Value="{x:Static core:LogLevel.Success}">
+                    <Setter TargetName="msg" Property="Foreground" Value="{StaticResource GreenBrush}" />
+                </DataTrigger>
+            </DataTemplate.Triggers>
+        </DataTemplate>
+    </Window.Resources>
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!-- ===== Topprad ===== -->
+        <Grid Grid.Row="0" Height="72" Margin="22,0,22,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <Border Width="38" Height="38" CornerRadius="11" Background="{StaticResource AccentSoftBrush}"
+                    VerticalAlignment="Center" BorderBrush="#2A3F6B" BorderThickness="1">
+                <Viewbox Margin="9">
+                    <Path Data="M 12 2 L 21 7 L 21 17 L 12 22 L 3 17 L 3 7 Z"
+                          Stroke="{StaticResource AccentBrush}" StrokeThickness="1.6" StrokeLineJoin="Round" />
+                </Viewbox>
+            </Border>
+
+            <StackPanel Grid.Column="1" Margin="12,0,0,0" VerticalAlignment="Center">
+                <TextBlock Text="LlamaDeck" FontSize="17" FontWeight="SemiBold" />
+                <TextBlock Text="Lokal LLM-server · llama.cpp" FontSize="11" Foreground="{StaticResource MutedBrush}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                <TextBlock Text="Backend" Style="{StaticResource Label}" Margin="0,0,8,0" />
+                <ComboBox x:Name="BackendCombo" Width="200" SelectionChanged="BackendCombo_SelectionChanged"
+                          ToolTip="Välj vilken llama.cpp-variant som ska köras. CUDA kräver NVIDIA-kort, Vulkan fungerar på de flesta GPU:er." />
+            </StackPanel>
+
+            <Button Grid.Column="3" x:Name="UpdateBtn" Content="Uppdateringar" Style="{StaticResource GhostButton}"
+                    Margin="12,0,0,0" VerticalAlignment="Center" Click="UpdateBtn_Click"
+                    ToolTip="Kontrollera och hämta nya llama.cpp-byggen, CUDA-runtime och Vulkan." />
+
+            <Button Grid.Column="4" x:Name="HelpBtn" Content="?" Style="{StaticResource GhostButton}"
+                    Width="36" Height="36" Padding="0" Margin="8,0,0,0" VerticalAlignment="Center"
+                    Click="HelpBtn_Click" ToolTip="Hjälp och förklaring av funktionerna" />
+        </Grid>
+
+        <!-- ===== Innehåll ===== -->
+        <Grid Grid.Row="1" Margin="22,0,22,16">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="*" />
+                <RowDefinition Height="12" />
+                <RowDefinition Height="200" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="392" />
+                    <ColumnDefinition Width="16" />
+                    <ColumnDefinition Width="*" />
+                </Grid.ColumnDefinitions>
+
+                <!-- Vänster: modeller och serverinställningar -->
+                <ScrollViewer Grid.Column="0" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,0,4,0">
+                    <StackPanel VerticalAlignment="Top">
+
+                        <!-- Modeller -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <Grid>
+                                    <TextBlock Text="Modeller" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                                    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
+                                        <Button x:Name="ConvertBtn" Content="Konvertera…" Style="{StaticResource SubtleButton}"
+                                                Margin="0,0,8,0" Click="Convert_Click"
+                                                ToolTip="Gör en GGUF-fil av en mapp med .safetensors-vikter (Hugging Face-format). llama.cpp kan bara läsa GGUF." />
+                                        <Button x:Name="ChooseFolderBtn" Content="Välj mapp" Style="{StaticResource SubtleButton}"
+                                                HorizontalAlignment="Right" Click="ChooseFolder_Click" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <!-- Läge: Auto läser modellen och låser inställningarna, Manuell släpper dem fria -->
+                                <Grid Margin="0,12,0,0">
+                                    <TextBlock Text="Läge" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                                    <Border HorizontalAlignment="Right" Background="{StaticResource SurfaceAltBrush}"
+                                            CornerRadius="8" Padding="3">
+                                        <StackPanel Orientation="Horizontal">
+                                            <ToggleButton x:Name="ModeAutoBtn" Content="Auto" Tag="Auto"
+                                                          Style="{StaticResource Segment}" Click="ModeBtn_Click"
+                                                          ToolTip="LlamaDeck läser modellens GGUF-metadata, ledigt VRAM, RAM och disktyp och ställer in allt själv. Inställningarna låses medan Auto är valt." />
+                                            <ToggleButton x:Name="ModeManualBtn" Content="Manuell" Tag="Manual"
+                                                          Style="{StaticResource Segment}" Click="ModeBtn_Click"
+                                                          ToolTip="Du ställer in allt själv. Det du ändrar sparas per modell." />
+                                        </StackPanel>
+                                    </Border>
+                                </Grid>
+                                <TextBlock x:Name="AutoTuneHint" Style="{StaticResource Hint}" Margin="0,6,0,0"
+                                           Visibility="Collapsed" TextWrapping="Wrap" />
+
+                                <ListBox x:Name="ModelList" Height="330" Margin="0,10,0,0"
+                                         ItemTemplate="{StaticResource ModelTemplate}"
+                                         SelectionChanged="ModelList_SelectionChanged"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto" />
+                                <TextBlock x:Name="ModelCountText" Style="{StaticResource Hint}" Margin="0,6,0,0" />
+
+                                <Grid Margin="0,10,0,0">
+                                    <TextBlock Text="Bildstöd (mmproj)" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                                    <ToggleButton x:Name="MmprojToggle" Style="{StaticResource Switch}"
+                                                  HorizontalAlignment="Right" Click="MmprojToggle_Click"
+                                                  ToolTip="Laddar en visionsfil (mmproj) tillsammans med modellen så att den kan läsa bilder." />
+                                </Grid>
+                                <ComboBox x:Name="MmprojCombo" Margin="0,6,0,0" Height="30" IsEnabled="False"
+                                          SelectionChanged="MmprojCombo_SelectionChanged"
+                                          ToolTip="mmproj-filer som hittats i modellmappen. Välj den som hör till vald modell." />
+                                <Grid Margin="0,6,0,0">
+                                    <TextBlock Text="Bild-ubatch" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                                    <TextBox x:Name="MmprojUbatchBox" Width="72" Height="30" HorizontalAlignment="Right"
+                                             Padding="10,3" TextChanged="MmprojUbatchBox_TextChanged"
+                                             ToolTip="0 = llama.cpp väljer själv. Gemma 4 behöver minst 1120 för bilder, annars kapas bildtoken-budgeten." />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Server -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Server" Style="{StaticResource SectionTitle}" />
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="86" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Port" Style="{StaticResource Label}" />
+                                    <TextBox x:Name="PortBox" Grid.Column="1" Height="32" Padding="10,3"
+                                             Margin="10,0,0,0" TextChanged="PortBox_TextChanged" LostFocus="PortBox_LostFocus"
+                                             ToolTip="Porten som servern lyssnar på. Standard 8080." />
+                                    <TextBlock Grid.Column="2" Text="Nätverk" Style="{StaticResource Label}"
+                                               HorizontalAlignment="Right" Margin="0,0,10,0" />
+                                    <ToggleButton x:Name="NetworkToggle" Grid.Column="3" Style="{StaticResource Switch}"
+                                                  VerticalAlignment="Center" Click="NetworkToggle_Click"
+                                                  ToolTip="Av: bara den här datorn (127.0.0.1). På: nåbar från andra enheter på nätverket (0.0.0.0)." />
+                                </Grid>
+
+                                <Grid Margin="0,10,0,0">
+                                    <TextBlock Text="Kontext" Style="{StaticResource Label}" />
+                                    <ComboBox x:Name="CtxCombo" Width="132" HorizontalAlignment="Right"
+                                              SelectionChanged="CtxCombo_SelectionChanged"
+                                              ToolTip="Hur många token modellen kan hålla i minnet. Större kontext kräver mer VRAM/RAM." />
+                                </Grid>
+                                <TextBlock x:Name="CtxHint" Style="{StaticResource Hint}" Margin="0,6,0,0" Visibility="Collapsed" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Prestanda -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Prestanda" Style="{StaticResource SectionTitle}" />
+
+                                <Grid Margin="0,12,0,0">
+                                    <TextBlock Text="CPU-trådar" Style="{StaticResource Label}" />
+                                    <TextBlock x:Name="ThreadsValue" HorizontalAlignment="Right" FontSize="12"
+                                               Foreground="{StaticResource TextBrush}" />
+                                </Grid>
+                                <Slider x:Name="ThreadsSlider" Margin="0,4,0,0" Minimum="1" Maximum="32"
+                                        IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="ThreadsSlider_ValueChanged" />
+
+                                <Grid Margin="0,12,0,4">
+                                    <TextBlock Text="GPU" Style="{StaticResource Label}" />
+                                    <TextBlock x:Name="GpuSummary" HorizontalAlignment="Right" FontSize="11"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </Grid>
+                                <StackPanel x:Name="GpuPanel" />
+
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="GPU-lager" Style="{StaticResource Label}" />
+                                    <TextBlock x:Name="GpuLayersValue" Grid.Column="1" HorizontalAlignment="Right"
+                                               FontSize="12" Foreground="{StaticResource TextBrush}" Margin="0,0,12,0" />
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal">
+                                        <TextBlock Text="Auto" Style="{StaticResource Label}" Margin="0,0,6,0" FontSize="11.5" />
+                                        <ToggleButton x:Name="GpuAutoToggle" Style="{StaticResource Switch}"
+                                                      VerticalAlignment="Center" Click="GpuAutoToggle_Click"
+                                                      ToolTip="Auto låter llama.cpp lägga så många lager som får plats i VRAM, med din reserv som marginal." />
+                                    </StackPanel>
+                                </Grid>
+                                <Slider x:Name="GpuLayersSlider" Margin="0,4,0,0" Minimum="0" Maximum="200"
+                                        IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="GpuLayersSlider_ValueChanged" />
+                                <TextBlock x:Name="GpuEstimate" Style="{StaticResource Hint}" Margin="0,4,0,0" />
+
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Kluster -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,10">
+                            <StackPanel>
+                                <TextBlock Text="Kluster" Style="{StaticResource SectionTitle}" />
+                                <TextBlock x:Name="ClusterSummary" Style="{StaticResource Hint}" Margin="0,6,0,0"
+                                           Text="Inga noder – servern kör bara på den här datorn." />
+                                <Button x:Name="ClusterBtn" Content="Hantera noder…" Style="{StaticResource SubtleButton}"
+                                        HorizontalAlignment="Left" Margin="0,10,0,0" Click="Cluster_Click" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- MoE -->
+                        <Border x:Name="MoeCard" Style="{StaticResource Card}" Margin="0,0,0,10" Visibility="Collapsed">
+                            <StackPanel>
+                                <TextBlock Text="MoE – experter" Style="{StaticResource SectionTitle}" />
+                                <TextBlock x:Name="MoeHint" Style="{StaticResource Hint}" Margin="0,6,0,0" />
+                                <ComboBox x:Name="MoeCombo" Margin="0,10,0,0" SelectionChanged="MoeCombo_SelectionChanged">
+                                    <ComboBoxItem Content="Auto (fyll VRAM först)" Tag="Auto" />
+                                    <ComboBoxItem Content="Delvis på CPU" Tag="CpuLayers" />
+                                    <ComboBoxItem Content="Alla experter på CPU" Tag="AllCpu" />
+                                </ComboBox>
+                                <Grid Margin="0,10,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="Lager" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                                    <Slider x:Name="MoeSlider" Grid.Column="1" Margin="10,0,0,0" Minimum="0" Maximum="60"
+                                            IsSnapToTickEnabled="True" TickFrequency="1" ValueChanged="MoeSlider_ValueChanged" />
+                                </Grid>
+                                <TextBlock x:Name="MoeValue" Style="{StaticResource Hint}" Margin="0,4,0,0" />
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Avancerat -->
+                        <Border Style="{StaticResource Card}" Margin="0,0,0,4">
+                            <Expander x:Name="AdvancedExpander" Header="Avancerat" IsExpanded="False">
+                                <StackPanel>
+                                    <Grid Margin="0,0,0,10">
+                                        <TextBlock Text="Flash attention" Style="{StaticResource Label}" />
+                                        <ToggleButton x:Name="FlashToggle" Style="{StaticResource Switch}"
+                                                      HorizontalAlignment="Right" Click="FlashToggle_Click"
+                                                      ToolTip="Snabbare och snålare uppmärksamhet. Låt den vara på om modellen stöder det." />
+                                    </Grid>
+                                    <Grid>
+                                        <TextBlock Text="KV-cache" Style="{StaticResource Label}" />
+                                        <ComboBox x:Name="KvCombo" Width="120" HorizontalAlignment="Right"
+                                                  SelectionChanged="KvCombo_SelectionChanged"
+                                                  ToolTip="Kvantisering av KV-cachen sparar VRAM, särskilt vid lång kontext." />
+                                    </Grid>
+
+                                    <Grid Margin="0,12,0,0">
+                                        <TextBlock Text="Parallella slots" Style="{StaticResource Label}" />
+                                        <TextBox x:Name="ParallelBox" Width="72" Height="30" HorizontalAlignment="Right"
+                                                 Padding="10,3" TextChanged="ParallelBox_TextChanged"
+                                                 ToolTip="Antal samtidiga förfrågningar. 1 räcker oftast för en användare." />
+                                    </Grid>
+
+                                    <TextBlock Text="API-nyckel (valfri)" Style="{StaticResource Label}" Margin="0,12,0,6" />
+                                    <TextBox x:Name="ApiKeyBox" Height="30" Padding="10,3" TextChanged="ApiKeyBox_TextChanged"
+                                             ToolTip="Om du exponerar servern på nätverket bör du sätta en nyckel. Klienter skickar den som Bearer-token." />
+
+                                    <TextBlock Text="Extra argument" Style="{StaticResource Label}" Margin="0,12,0,6" />
+                                    <TextBox x:Name="ExtraArgsBox" Height="30" Padding="10,3" TextChanged="ExtraArgsBox_TextChanged"
+                                             ToolTip="Skickas direkt till llama-server, t.ex. --jinja eller --rope-scale 2." />
+
+                                    <TextBlock Text="Startkommando" Style="{StaticResource Label}" Margin="0,12,0,6" />
+                                    <TextBox x:Name="CommandPreview" Height="84" IsReadOnly="True" AcceptsReturn="True"
+                                             TextWrapping="Wrap" VerticalScrollBarVisibility="Auto"
+                                             FontFamily="Cascadia Mono, Consolas" FontSize="10.5"
+                                             Background="#0D1118" Foreground="#8E9BB0" />
+                                </StackPanel>
+                            </Expander>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+
+                <!-- Höger: status, resurser och minnesinställningar -->
+                <ScrollViewer Grid.Column="2" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled"
+                              Padding="0,0,4,0">
+                    <StackPanel VerticalAlignment="Top">
+
+                        <!-- Serverstatus -->
+                        <Border Style="{StaticResource Card}">
+                            <StackPanel>
+                                <Grid>
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="Auto" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <Ellipse x:Name="StatusDot" Width="10" Height="10" Fill="{StaticResource MutedBrush}"
+                                             Margin="0,2,12,0" VerticalAlignment="Center" />
+                                    <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                        <TextBlock x:Name="StatusText" Text="Stoppad" FontSize="19" FontWeight="SemiBold" />
+                                        <TextBlock x:Name="StatusDetail" Text="Välj en modell och starta servern"
+                                                   FontSize="11.5" Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0" />
+                                    </StackPanel>
+                                    <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                                        <Button x:Name="StartBtn" Content="Starta server" Style="{StaticResource PrimaryButton}"
+                                                Click="StartBtn_Click" />
+                                        <Button x:Name="StopBtn" Content="Stoppa" Style="{StaticResource GhostButton}"
+                                                Margin="8,0,0,0" IsEnabled="False" Click="StopBtn_Click" />
+                                    </StackPanel>
+                                </Grid>
+
+                                <Grid Margin="0,14,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="Auto" />
+                                    </Grid.ColumnDefinitions>
+                                    <StackPanel>
+                                        <TextBlock x:Name="ModelTitle" Text="Ingen modell vald" FontSize="13" FontWeight="SemiBold"
+                                                   TextTrimming="CharacterEllipsis" />
+                                        <TextBlock x:Name="ModelMeta" Text="—" FontSize="11" Foreground="{StaticResource MutedBrush}"
+                                                   Margin="0,2,0,0" TextTrimming="CharacterEllipsis" />
+                                    </StackPanel>
+                                    <Button x:Name="TestBtn" Grid.Column="1" Content="Testa" Style="{StaticResource SubtleButton}"
+                                            VerticalAlignment="Center" IsEnabled="False" Click="TestBtn_Click"
+                                            ToolTip="Skickar en liten fråga till servern och visar svaret i loggen." />
+                                </Grid>
+
+                                <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="9" Padding="12,8" Margin="0,14,0,0">
+                                    <Grid>
+                                        <Grid.ColumnDefinitions>
+                                            <ColumnDefinition Width="*" />
+                                            <ColumnDefinition Width="Auto" />
+                                        </Grid.ColumnDefinitions>
+                                        <TextBlock x:Name="EndpointText" Text="http://127.0.0.1:8080" Style="{StaticResource Mono}"
+                                                   VerticalAlignment="Center" TextTrimming="CharacterEllipsis" Foreground="#AFC0DA" />
+                                        <StackPanel Grid.Column="1" Orientation="Horizontal">
+                                            <Button Content="Kopiera" Style="{StaticResource MiniButton}" Click="CopyEndpoint_Click" />
+                                            <Button Content="Öppna" Style="{StaticResource MiniButton}" Click="OpenEndpoint_Click"
+                                                    ToolTip="Öppnar llama.cpp:s inbyggda webbgränssnitt i webbläsaren." />
+                                        </StackPanel>
+                                    </Grid>
+                                </Border>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Resurser -->
+                        <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                            <StackPanel>
+                                <Grid>
+                                    <TextBlock Text="Resurser" Style="{StaticResource SectionTitle}" />
+                                    <TextBlock x:Name="TokensText" HorizontalAlignment="Right" FontSize="11.5"
+                                               Foreground="{StaticResource MutedBrush}" Text="— tok/s" />
+                                </Grid>
+
+                                <Grid Margin="0,12,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="48" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="170" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="CPU" Style="{StaticResource Label}" FontSize="11.5" />
+                                    <ProgressBar x:Name="CpuBar" Grid.Column="1" Style="{StaticResource Meter}"
+                                                 VerticalAlignment="Center" Maximum="100" />
+                                    <TextBlock x:Name="CpuText" Grid.Column="2" HorizontalAlignment="Right" FontSize="11.5"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </Grid>
+
+                                <Grid Margin="0,9,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="48" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="170" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="RAM" Style="{StaticResource Label}" FontSize="11.5" />
+                                    <ProgressBar x:Name="RamBar" Grid.Column="1" Style="{StaticResource Meter}"
+                                                 VerticalAlignment="Center" Maximum="100" Foreground="{StaticResource GreenBrush}" />
+                                    <TextBlock x:Name="RamText" Grid.Column="2" HorizontalAlignment="Right" FontSize="11.5"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </Grid>
+
+                                <Grid Margin="0,9,0,0">
+                                    <Grid.ColumnDefinitions>
+                                        <ColumnDefinition Width="48" />
+                                        <ColumnDefinition Width="*" />
+                                        <ColumnDefinition Width="170" />
+                                    </Grid.ColumnDefinitions>
+                                    <TextBlock Text="VRAM" Style="{StaticResource Label}" FontSize="11.5" />
+                                    <ProgressBar x:Name="VramBar" Grid.Column="1" Style="{StaticResource Meter}"
+                                                 VerticalAlignment="Center" Maximum="100" Foreground="{StaticResource AmberBrush}" />
+                                    <TextBlock x:Name="VramText" Grid.Column="2" HorizontalAlignment="Right" FontSize="11.5"
+                                               Foreground="{StaticResource MutedBrush}" />
+                                </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <!-- Minne -->
+                        <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                            <StackPanel>
+                                <TextBlock Text="Minne" Style="{StaticResource SectionTitle}" />
+
+                                <Grid Margin="0,10,0,0">
+                                    <TextBlock Text="VRAM-reserv" Style="{StaticResource Label}" />
+                                    <TextBlock x:Name="VramReserveValue" HorizontalAlignment="Right" FontSize="12" />
+                                </Grid>
+                                <Slider x:Name="VramReserveSlider" Margin="0,2,0,0" Minimum="0" Maximum="6144"
+                                        TickFrequency="128" IsSnapToTickEnabled="True" ValueChanged="VramReserveSlider_ValueChanged"
+                                        ToolTip="Hur mycket VRAM som ska lämnas fritt (t.ex. till skrivbordet). Används som marginal när GPU-lager räknas ut." />
+
+                                <Grid Margin="0,10,0,0">
+                                    <TextBlock Text="Reserv till Windows" Style="{StaticResource Label}" />
+                                    <TextBlock x:Name="OsReserveValue" HorizontalAlignment="Right" FontSize="12" />
+                                </Grid>
+                                <Slider x:Name="OsReserveSlider" Margin="0,2,0,0" Minimum="1" Maximum="64"
+                                        TickFrequency="1" IsSnapToTickEnabled="True" ValueChanged="OsReserveSlider_ValueChanged"
+                                        ToolTip="RAM som alltid ska vara kvar åt Windows. Med hård gräns kan servern inte ta mer än resten." />
+
+                                <Grid Margin="0,8,0,0">
+                                    <TextBlock Text="Hård RAM-gräns" Style="{StaticResource Label}" />
+                                    <ToggleButton x:Name="RamGuardToggle" Style="{StaticResource Switch}"
+                                                  HorizontalAlignment="Right" Click="RamGuardToggle_Click"
+                                                  ToolTip="Sätter ett hårt tak på serverns minnesanvändning via Windows jobbobjekt. Skyddar datorn från att hänga sig." />
+                                </Grid>
+                                <TextBlock x:Name="RamGuardHint" Style="{StaticResource Hint}" Margin="0,4,0,0" />
+
+                                <Grid Margin="0,10,0,0">
+                                    <TextBlock Text="Avlastning" Style="{StaticResource Label}" />
+                                    <ComboBox x:Name="OffloadCombo" Width="200" HorizontalAlignment="Right"
+                                              SelectionChanged="OffloadCombo_SelectionChanged"
+                                              ToolTip="Hur modellen ska hanteras när den är större än VRAM." />
+                                </Grid>
+                                <TextBlock x:Name="OffloadHint" Style="{StaticResource Hint}" Margin="0,6,0,0" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+
+            <!-- Logg -->
+            <Border Grid.Row="2" Style="{StaticResource Card}" Padding="16,12,16,10">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto" />
+                        <RowDefinition Height="*" />
+                    </Grid.RowDefinitions>
+
+                    <Grid Grid.Row="0" Margin="0,0,0,6">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBlock Text="Logg" Style="{StaticResource SectionTitle}" VerticalAlignment="Center" />
+                            <Border Background="{StaticResource SurfaceAltBrush}" CornerRadius="6" Padding="6,1"
+                                    Margin="8,0,0,0">
+                                <TextBlock x:Name="LogCountText" Text="0" FontSize="10" Foreground="{StaticResource MutedBrush}" />
+                            </Border>
+                            <TextBlock x:Name="LogFileText" Text="" FontSize="10.5" Foreground="{StaticResource DimBrush}"
+                                       Margin="10,0,0,0" VerticalAlignment="Center" TextTrimming="CharacterEllipsis" />
+                        </StackPanel>
+
+                        <StackPanel Grid.Column="2" Orientation="Horizontal" VerticalAlignment="Center">
+                            <TextBox x:Name="LogFilter" Width="150" Height="26" Padding="8,2" FontSize="11.5"
+                                     TextChanged="LogFilter_TextChanged" ToolTip="Filtrera loggen" />
+                            <TextBlock Text="Spara fil" Style="{StaticResource Label}" Margin="12,0,6,0" FontSize="11" />
+                            <ToggleButton x:Name="SaveLogToggle" Style="{StaticResource Switch}"
+                                          VerticalAlignment="Center" Click="SaveLogToggle_Click"
+                                          ToolTip="Spara loggen till fil i loggmappen." />
+                            <TextBlock Text="Autoscroll" Style="{StaticResource Label}" Margin="14,0,6,0" FontSize="11" />
+                            <ToggleButton x:Name="AutoScrollToggle" Style="{StaticResource Switch}"
+                                          VerticalAlignment="Center" Click="AutoScrollToggle_Click"
+                                          ToolTip="Rulla automatiskt nedåt när nya rader kommer." />
+                            <Button Content="Rensa" Style="{StaticResource MiniButton}" Margin="10,0,0,0"
+                                    Click="ClearLog_Click" />
+                            <Button Content="Öppna mapp" Style="{StaticResource MiniButton}" Click="OpenLogFolder_Click"
+                                    ToolTip="Öppna loggmappen" />
+                        </StackPanel>
+                    </Grid>
+
+                    <ListBox x:Name="LogList" Grid.Row="1" ItemTemplate="{StaticResource LogTemplate}" Focusable="False" IsTabStop="False" IsSynchronizedWithCurrentItem="False" SelectedIndex="-1"
+                             ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                             VirtualizingStackPanel.IsVirtualizing="True"
+                             VirtualizingStackPanel.VirtualizationMode="Recycling" />
+                </Grid>
+            </Border>
+        </Grid>
+    </Grid>
+</Window>

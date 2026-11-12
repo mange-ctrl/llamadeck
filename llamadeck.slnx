@@ -1,0 +1,6 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/LlamaDeck/LlamaDeck.csproj" />
+    <Project Path="src/LlamaDeckNode/LlamaDeckNode.csproj" />
+  </Folder>
+</Solution>

@@ -1,0 +1,97 @@
+﻿<Window x:Class="LlamaDeck.ClusterWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Kluster" Width="760" Height="600" MinWidth="620" MinHeight="460"
+        WindowStartupLocation="CenterOwner"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="20,18,20,0">
+            <TextBlock Text="Kluster – RPC-noder" FontSize="17" FontWeight="SemiBold" />
+            <TextBlock Style="{StaticResource Hint}" Margin="0,6,0,0"
+                       Text="Noder ger extra minne, inte högre fart: varje token går igenom alla noder i tur och ordning. Maskinerna behöver inte vara identiska – bara samma llama.cpp-version. Lägg till adressen som LlamaDeck Node visar." />
+        </StackPanel>
+
+        <Grid Grid.Row="1" Margin="20,14,20,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="*" />
+                <RowDefinition Height="Auto" />
+                <RowDefinition Height="Auto" />
+            </Grid.RowDefinitions>
+
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="AddressBox" Height="32" VerticalContentAlignment="Center" Padding="10,0"
+                         ToolTip="Exempel: 192.168.1.42:50052 eller bara 192.168.1.42" />
+                <Button Grid.Column="1" x:Name="AddBtn" Content="Lägg till" Style="{StaticResource SubtleButton}"
+                        Margin="8,0,0,0" Click="Add_Click" />
+                <Button Grid.Column="2" x:Name="TestAllBtn" Content="Testa alla" Style="{StaticResource SubtleButton}"
+                        Margin="8,0,0,0" Click="TestAll_Click" />
+            </Grid>
+
+            <ListBox x:Name="NodesList" Grid.Row="1" Margin="0,12,0,0" Background="{StaticResource SurfaceAltBrush}"
+                     BorderBrush="{StaticResource StrokeSoftBrush}" BorderThickness="1">
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid Margin="6,7,6,7">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="190" />
+                                <ColumnDefinition Width="110" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Text="{Binding Address}" FontFamily="Cascadia Mono, Consolas" FontSize="12" />
+                            <TextBlock Grid.Column="1" Text="{Binding Status}" FontSize="11.5"
+                                       Foreground="{Binding StatusBrush}" />
+                            <TextBlock Grid.Column="2" Text="{Binding Info}" FontSize="11"
+                                       Foreground="{StaticResource MutedBrush}" TextTrimming="CharacterEllipsis" />
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <Grid Grid.Row="2" Margin="0,14,0,0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+                <TextBlock Text="Lagerfördelning" Style="{StaticResource Label}" VerticalAlignment="Center" />
+                <TextBox x:Name="WeightsBox" Grid.Column="1" Height="30" Margin="10,0,0,0" Padding="10,0"
+                         VerticalContentAlignment="Center"
+                         ToolTip="Andelar per nod, t.ex. 1,1,2. Tomt = jämn fördelning." />
+                <Button Grid.Column="2" x:Name="RemoveBtn" Content="Ta bort" Style="{StaticResource SubtleButton}"
+                        Margin="8,0,0,0" Click="Remove_Click" />
+            </Grid>
+
+            <TextBlock Grid.Row="3" x:Name="StatusHint" Style="{StaticResource Hint}" Margin="0,8,0,0"
+                       Text="Tomt i fältet = llama.cpp fördelar lagren jämnt. Vikta upp en starkare nod med 2 och en svagare med 1." />
+        </Grid>
+
+        <Border Grid.Row="2" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0" Margin="0,16,0,0">
+            <DockPanel Margin="20,12,20,12" LastChildFill="False">
+                <TextBlock x:Name="SummaryText" VerticalAlignment="Center" FontSize="11"
+                           Foreground="{StaticResource MutedBrush}" />
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal">
+                    <Button x:Name="CloseBtn" Content="Stäng" Style="{StaticResource GhostButton}" Click="Close_Click" />
+                    <Button x:Name="SaveBtn" Content="Spara" Style="{StaticResource PrimaryButton}" Margin="8,0,0,0"
+                            Click="Save_Click" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>

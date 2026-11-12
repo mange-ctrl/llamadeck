@@ -1,0 +1,129 @@
+﻿<Window x:Class="LlamaDeckNode.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="LlamaDeck Node" Width="640" Height="580" MinWidth="520" MinHeight="440"
+        WindowStartupLocation="CenterScreen"
+        Background="{StaticResource BgBrush}"
+        Foreground="{StaticResource TextBrush}"
+        FontFamily="Segoe UI Variable Text, Segoe UI"
+        UseLayoutRounding="True"
+        TextOptions.TextFormattingMode="Display">
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="64" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="62" />
+        </Grid.RowDefinitions>
+
+        <!-- Rubrik -->
+        <Border Grid.Row="0" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,0,0,1">
+            <DockPanel Margin="20,0" LastChildFill="False">
+                <StackPanel VerticalAlignment="Center">
+                    <TextBlock Text="LlamaDeck Node" FontSize="17" FontWeight="SemiBold" />
+                    <TextBlock x:Name="MachineText" Text="…" FontSize="11"
+                               Foreground="{StaticResource MutedBrush}" Margin="0,2,0,0" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <Ellipse x:Name="StatusDot" Width="8" Height="8" Fill="{StaticResource MutedBrush}"
+                             VerticalAlignment="Center" />
+                    <TextBlock x:Name="StatusText" Text="Stoppad" FontSize="12" Margin="7,0,0,0"
+                               VerticalAlignment="Center" Foreground="{StaticResource MutedBrush}" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+
+        <!-- Innehåll -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel Margin="20,16,20,16">
+
+                <Border Style="{StaticResource Card}">
+                    <StackPanel>
+                        <TextBlock Text="RPC-server" Style="{StaticResource SectionTitle}" />
+
+                        <Grid Margin="0,12,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <StackPanel>
+                                <TextBlock Text="Adress att lägga till i LlamaDeck" Style="{StaticResource Label}" />
+                                <TextBlock x:Name="AddressText" Text="—" FontSize="17" Margin="0,5,0,0"
+                                           FontFamily="Cascadia Mono, Consolas" />
+                            </StackPanel>
+                            <Button Grid.Column="1" x:Name="CopyBtn" Content="Kopiera"
+                                    Style="{StaticResource SubtleButton}" VerticalAlignment="Bottom"
+                                    Click="Copy_Click" />
+                        </Grid>
+
+                        <TextBlock x:Name="HintText" Style="{StaticResource Hint}" Margin="0,10,0,0"
+                                   Text="Port 50052 (TCP) måste vara öppen i brandväggen. Samma llama.cpp-version krävs på alla noder i klustret." />
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Den här datorn" Style="{StaticResource SectionTitle}" />
+                        <Grid Margin="0,10,0,0">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="90" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                                <RowDefinition Height="Auto" />
+                            </Grid.RowDefinitions>
+
+                            <TextBlock Text="Minne" Style="{StaticResource Label}" />
+                            <TextBlock x:Name="RamText" Grid.Column="1" Text="—" FontSize="12" />
+
+                            <TextBlock Grid.Row="1" Text="Processor" Style="{StaticResource Label}" Margin="0,7,0,0" />
+                            <TextBlock x:Name="CpuText" Grid.Row="1" Grid.Column="1" Text="—" FontSize="12" Margin="0,7,0,0" />
+
+                            <TextBlock Grid.Row="2" Text="Grafik" Style="{StaticResource Label}" Margin="0,7,0,0" />
+                            <TextBlock x:Name="GpuText" Grid.Row="2" Grid.Column="1" Text="—" FontSize="12"
+                                       Margin="0,7,0,0" TextWrapping="Wrap" />
+
+                            <TextBlock Grid.Row="3" Text="Backend" Style="{StaticResource Label}" Margin="0,7,0,0" />
+                            <TextBlock x:Name="BackendText" Grid.Row="3" Grid.Column="1" Text="—" FontSize="12"
+                                       Margin="0,7,0,0" TextWrapping="Wrap" Foreground="{StaticResource MutedBrush}" />
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <Border Style="{StaticResource Card}" Margin="0,10,0,0">
+                    <StackPanel>
+                        <TextBlock Text="Logg" Style="{StaticResource SectionTitle}" />
+                        <TextBox x:Name="LogBox" Height="150" Margin="0,10,0,0" IsReadOnly="True"
+                                 AcceptsReturn="True" VerticalScrollBarVisibility="Auto"
+                                 FontFamily="Cascadia Mono, Consolas" FontSize="11" Background="{StaticResource SurfaceAltBrush}"
+                                 Foreground="{StaticResource MutedBrush}" BorderBrush="{StaticResource StrokeSoftBrush}" />
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Knapprad -->
+        <Border Grid.Row="2" BorderBrush="{StaticResource StrokeBrush}" BorderThickness="0,1,0,0">
+            <DockPanel Margin="20,0" LastChildFill="False">
+                <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                    <Button x:Name="StartBtn" Content="Starta nod" Style="{StaticResource PrimaryButton}"
+                            Click="Start_Click" />
+                    <Button x:Name="StopBtn" Content="Stoppa" Style="{StaticResource SubtleButton}"
+                            Margin="8,0,0,0" Click="Stop_Click" IsEnabled="False" />
+                </StackPanel>
+
+                <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" VerticalAlignment="Center">
+                    <TextBlock Text="Starta vid öppning" Style="{StaticResource Label}" VerticalAlignment="Center"
+                               Margin="0,0,8,0" />
+                    <ToggleButton x:Name="AutoToggle" Style="{StaticResource Switch}" VerticalAlignment="Center"
+                                  IsChecked="True" />
+                </StackPanel>
+            </DockPanel>
+        </Border>
+    </Grid>
+</Window>
